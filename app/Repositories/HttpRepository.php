@@ -13,27 +13,29 @@ class HttpRepository
      * @return string
      *  Return the post
      */
-    public function post($url, $data, $image = NULL)
+    public function post($url, $data, $image = null, $header = null)
     {
-        try{
-            //$token = \Session::get('studentToken');
-            //dd($token);
-            if($image){
+        try {
+            if ($image) {
                 $imageName = $image->getClientOriginalName();
-                $response = Http::attach(
-                    'image', file_get_contents($image),$imageName
-                )->post($url, $data);
-            }else{
-                $response = Http::post($url, $data);
+
+                $response = Http::withHeaders([
+                    'Authorization' => $header,
+                ])
+                    ->attach(
+                        'image', file_get_contents($image), $imageName
+                    )->post($url, $data);
+            } else {
+                $response = Http::withHeaders([
+                    'Authorization' => $header,
+                ])->post($url, $data);
             }
 
-            if($response->successful() || $response->failed())
-            {
+            if ($response->successful() || $response->failed()) {
                 return $response->json();
-            }else if($response->serverError() || $response->clientError())
-            {
+            } else if ($response->serverError() || $response->clientError()) {
                 return $response->throw();
-            }else{
+            } else {
                 return $response->json();
             }
 
@@ -44,23 +46,31 @@ class HttpRepository
 
     }
 
-      /**
+    /**
      * @return string
      *  Return the get
      */
-    public function get($url,$header = NULL)
+    public function get($url, $header = null)
     {
-        try{
-            if($header)
-            {
+
+        try {
+            if ($header) {
                 $response = Http::withHeaders([
                     'Authorization' => $header,
                 ])->get($url);
-            }else{
+            } else {
                 $response = Http::get($url);
             }
 
-            return $response->json();
+
+            if ($response->successful() || $response->failed()) {
+                return $response->json();
+            } else if ($response->serverError() || $response->clientError()) {
+                return $response->throw();
+            } else {
+                return $response->json();
+            }
+
         } catch (\Exception $e) {
             \Log::error($e->getMessage());
             return response()->json(['error' => __('messages.error')], 500);

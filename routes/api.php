@@ -24,6 +24,8 @@ Route::group([
     Route::post('login', [MainController::class,'studentLogin']);
 
     Route::get('approved/{id}', [MainController::class,'studentApproved']);
+
+    Route::post("assigned/teacher", [MainController::class, 'assignedTeacher']);
 });
 
 Route::group([

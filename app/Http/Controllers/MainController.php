@@ -7,7 +7,7 @@ use App\Repositories\HttpRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use App\Http\Requests\StudentRequest;
+use App\Http\Requests\AssignedTeacherRequest;
 
 class MainController extends Controller
 {
@@ -18,7 +18,9 @@ class MainController extends Controller
     const TEACHERREG = "/register/teacher";
     const STUDENTAPPROVED = "/student/approved/";
     const TEACHERAPPROVED = "/teacher/approved/";
+    const ASSIGNTEACHER = "/assigned/teacher";
     const ISADMIN = '/isAdmin';
+    const NOTIFICATIONSTORE = '/notification/store';
 
 
     public function __construct(HttpRepository $httpRepository, array $options = [])
@@ -67,6 +69,47 @@ class MainController extends Controller
             $url = config('app.student_url').self::STUDENTAPPROVED.$id;
 
             $response = $this->http->get($url,$header);
+
+            return $response;
+
+            } catch (\Exception $e) {
+                Log::error($e->getMessage());
+                return response()->json(['error' => __('messages.error')], 500);
+            }
+    }
+
+    public function assignedTeacher(AssignedTeacherRequest $request)
+    {
+        try{
+            $header = $request->header('Authorization');
+
+            $urlNew = config('app.student_url').self::ASSIGNTEACHER;
+            $teacherUserUrl = config('app.teacher_url').'/user/'.$request->input('teacher_id');
+            $studentUrl = config('app.student_url').'/user/'.$request->input('user_id');
+            $notificationUrl = config('app.notification_url').self::NOTIFICATIONSTORE;
+
+
+            $response = $this->http->post($urlNew,$request->all(),'',$header);
+
+            //notification for the teacher, when there is a new student assigned to him
+            $teacher = $this->http->get($teacherUserUrl);
+
+            $student = $this->http->get($studentUrl,$header);
+
+            if($student && isset($student['user']) && $teacher && isset($teacher['user']))
+            {
+                $studentDetails = $student['user'];
+                $teacherDetails = $teacher['user'];
+
+                $new_array = [
+                    'student' => $studentDetails,
+                    'teacher' => $teacherDetails
+                ];
+                $notification = $this->http->post($notificationUrl,$new_array);
+            }
+
+
+
 
             return $response;
 

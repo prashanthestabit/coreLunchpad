@@ -19,6 +19,8 @@ return [
 
     'teacher_url' => env('TEACHER_HOST', 'http://127.0.0.1:8002/api'),
 
+    'notification_url' => env('NOTIFICATION_HOST', 'http://127.0.0.1:8002/api'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment

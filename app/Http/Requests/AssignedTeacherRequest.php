@@ -27,8 +27,8 @@ class AssignedTeacherRequest extends FormRequest
     public function rules()
     {
         return [
-            "user_id" => ['required', new UserApproved($this->user_id)],
-            "teacher_id" => ['required', new UserApproved($this->teacher_id)],
+            "user_id" => ['required'],
+            "teacher_id" => ['required'],
         ];
     }
 

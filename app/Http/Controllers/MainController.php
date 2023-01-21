@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Http\Requests\AssignedTeacherRequest;
+use App\Http\Requests\LoginRequest;
 
 class MainController extends Controller
 {
@@ -31,13 +32,16 @@ class MainController extends Controller
 
     /**
      * Admin and student login API
+     * @param email
+     * @param password
+     * @return $response
      */
-    public function studentLogin(Request $request)
+    public function studentLogin(LoginRequest $request)
     {
         try{
             $url = config('app.student_url').self::LOGIN;
             $response = $this->http->post($url,$request->all());
-            return $response;
+            return $this->http->getResponse($response);
 
             } catch (\Exception $e) {
                 Log::error($e->getMessage());
@@ -45,14 +49,19 @@ class MainController extends Controller
             }
     }
 
-
-    public function teacherLogin(Request $request)
+    /**
+     * Teacher Login API
+     * @param email
+     * @param password
+     * @return $response
+     */
+    public function teacherLogin(LoginRequest $request)
     {
         try{
             $url = config('app.teacher_url').self::LOGIN;
 
             $response = $this->http->post($url,$request->all());
-            return $response;
+            return $this->http->getResponse($response);
 
             } catch (\Exception $e) {
                 Log::error($e->getMessage());
@@ -60,17 +69,43 @@ class MainController extends Controller
             }
     }
 
+    /**
+     * Student Approved By the Admin
+     *
+     */
     public function studentApproved(Request $request)
     {
         try{
             $header = $request->header('Authorization');
             $id = $request->id;
+            if(empty($id) || !is_numeric($id))
+            {
+                return response()->json(['error' => __('messages.try_again')], 401);
+            }
 
             $url = config('app.student_url').self::STUDENTAPPROVED.$id;
+            $studentUrl = config('app.student_url').'/user/'.$id;
 
-            $response = $this->http->get($url,$header);
+            if(empty($header))
+            {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
 
-            return $response;
+            // Check Student Approved already or not
+            $student = $this->http->get($studentUrl,$header);
+            if($student->status() === 200)
+            {
+                $studentData = $student->json('user');
+                if(empty($studentData)){
+                    return response()->json(['error' => 'Stunent Not Found'], 401);
+                }
+
+                $response = $this->http->get($url,$header);
+                return $this->http->getResponse($response);
+
+            }else{
+                return $studentData->throw();
+            }
 
             } catch (\Exception $e) {
                 Log::error($e->getMessage());
@@ -78,40 +113,31 @@ class MainController extends Controller
             }
     }
 
+    /**
+     * Teacher will be assigned to the student by the admin.
+     */
     public function assignedTeacher(AssignedTeacherRequest $request)
     {
         try{
             $header = $request->header('Authorization');
 
-            $urlNew = config('app.student_url').self::ASSIGNTEACHER;
-            $teacherUserUrl = config('app.teacher_url').'/user/'.$request->input('teacher_id');
-            $studentUrl = config('app.student_url').'/user/'.$request->input('user_id');
-            $notificationUrl = config('app.notification_url').self::NOTIFICATIONSTORE;
-
-
-            $response = $this->http->post($urlNew,$request->all(),'',$header);
-
-            //notification for the teacher, when there is a new student assigned to him
-            $teacher = $this->http->get($teacherUserUrl);
-
-            $student = $this->http->get($studentUrl,$header);
-
-            if($student && isset($student['user']) && $teacher && isset($teacher['user']))
+            if(empty($header))
             {
-                $studentDetails = $student['user'];
-                $teacherDetails = $teacher['user'];
-
-                $new_array = [
-                    'student' => $studentDetails,
-                    'teacher' => $teacherDetails
-                ];
-                $notification = $this->http->post($notificationUrl,$new_array);
+                return response()->json(['error' => 'Unauthorized'], 401);
             }
 
+            $urlNew = config('app.student_url').self::ASSIGNTEACHER;
 
+            $response = $this->http->post($urlNew,$request->all(),'',$header);
+            if($response->status() === 200)
+            {
+                //notification for the teacher, when there is a new student assigned to him
+                $this->sendNewStudentAssignedNotification($header,$request);
+                return $response->json();
+            }else{
+                return $studentData->throw();
+            }
 
-
-            return $response;
 
             } catch (\Exception $e) {
                 Log::error($e->getMessage());
@@ -119,25 +145,41 @@ class MainController extends Controller
             }
     }
 
+    /**
+     * Once the teacher completes his/her profile, the admin can able to approve this
+     */
     public function teacherApproved(Request $request)
     {
         try{
             $header = $request->header('Authorization');
+
+            if(empty($header))
+            {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
             $id = $request->id;
+
+            if(empty($id) || !is_numeric($id))
+            {
+                return response()->json(['error' => __('messages.try_again')], 401);
+            }
 
             $url = config('app.student_url').self::ISADMIN;
 
             $response = $this->http->get($url,$header);
 
-            if($response['status'])
+            if($response->status() === 200)
             {
-                return response()->json(['error' => __('messages.error')], 500);
+                $urlForApprove = config('app.teacher_url').self::TEACHERAPPROVED.$id;
+
+                $responseApproval = $this->http->get($urlForApprove);
+
+                return $this->http->getResponse($responseApproval);
+            }else{
+                return $response->throw();
             }
-            $urlForApprove = config('app.teacher_url').self::TEACHERAPPROVED.$id;
 
-             $responseApproval = $this->http->get($urlForApprove);
-
-             return $responseApproval;
 
             } catch (\Exception $e) {
                 Log::error($e->getMessage());
@@ -145,13 +187,16 @@ class MainController extends Controller
             }
     }
 
+    /**
+     *
+     */
     public function studentRegister(Request $request)
     {
         try{
             $url = config('app.student_url').self::STUDENTREG;
             $response = $this->http->post($url,$request->except('image'),$request->file('image'));
 
-            return $response;
+            return $this->http->getResponse($response);
 
             } catch (\Exception $e) {
                 Log::error($e->getMessage());
@@ -168,11 +213,51 @@ class MainController extends Controller
             $url = config('app.teacher_url').self::TEACHERREG;
             $response = $this->http->post($url,$request->except('image'),$request->file('image'));
 
-            return $response;
+            return $$this->http->getResponse($response);
 
             } catch (\Exception $e) {
                 Log::error($e->getMessage());
                 return response()->json(['error' => __('messages.error')], 500);
             }
+    }
+
+
+    protected function sendNewStudentAssignedNotification($header,$request)
+    {
+        try{
+            $teacherUserUrl = config('app.teacher_url').'/user/'.$request->input('teacher_id');
+            $studentUrl = config('app.student_url').'/user/'.$request->input('user_id');
+            $notificationUrl = config('app.notification_url').self::NOTIFICATIONSTORE;
+
+            $teacher = $this->http->get($teacherUserUrl);
+
+
+            $student = $this->http->get($studentUrl,$header);
+
+            if($student->status() === 200 && $student->json('user')
+                && $teacher->status() === 200 && $teacher->json('user'))
+            {
+                $studentDetails = $student->json('user');
+                $teacherDetails = $teacher->json('user');
+
+                $new_array = [
+                    'student' => $studentDetails,
+                    'teacher' => $teacherDetails
+                ];
+                $notification = $this->http->post($notificationUrl,$new_array);
+                if($notification->status() === 200)
+                {
+                    Log::info('StudentAssignedNotification Send');
+                }else{
+                    $notification->throw();
+                }
+            }else{
+                Log::info('Notification Not Send');
+            }
+            return true;
+        }catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['error' => __('messages.error')], 500);
+        }
     }
 }

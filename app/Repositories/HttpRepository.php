@@ -31,13 +31,17 @@ class HttpRepository
                 ])->post($url, $data);
             }
 
-            if ($response->successful() || $response->failed()) {
+            return $response;
+
+
+
+            /*if ($response->successful() || $response->failed()) {
                 return $response->json();
             } else if ($response->serverError() || $response->clientError()) {
                 return $response->throw();
             } else {
                 return $response->json();
-            }
+            }*/
 
         } catch (\Exception $e) {
             \Log::error($e->getMessage());
@@ -62,19 +66,37 @@ class HttpRepository
                 $response = Http::get($url);
             }
 
-
-            if ($response->successful() || $response->failed()) {
+            return $response;
+            /*if ($response->successful() || $response->failed()) {
                 return $response->json();
             } else if ($response->serverError() || $response->clientError()) {
                 return $response->throw();
             } else {
                 return $response->json();
-            }
+            }*/
 
         } catch (\Exception $e) {
             \Log::error($e->getMessage());
             return response()->json(['error' => __('messages.error')], 500);
         }
 
+    }
+
+    public function getResponse($response)
+    {
+        try{
+                if($response->status() === 200)
+                {
+                    return $response->json();
+                }elseif($response->status() === 401)
+                {
+                    return response()->json(['error' => 'Unauthorized'], 401);
+                }else{
+                    return response()->json(['error' => __('messages.error').$response->status()], 500);
+                }
+            } catch (\Exception $e) {
+                Log::error($e->getMessage());
+                return response()->json(['error' => __('messages.error')], 500);
+            }
     }
 }

@@ -5,10 +5,8 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
-use App\Rules\IsTeacherApproved;
-use App\Rules\IsStudentApproved;
 
-class AssignedTeacherRequest extends FormRequest
+class LoginRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -28,24 +26,10 @@ class AssignedTeacherRequest extends FormRequest
     public function rules()
     {
         return [
-            "user_id" => ['required',new IsStudentApproved($this)],
-            "teacher_id" => ['required',new IsTeacherApproved($this->teacher_id)],
+            "email" => "required|email",
+            "password" => "required",
         ];
     }
-
-
-    /**
-     * Get the error messages for the defined validation rules.
-     *
-     * @return array
-     */
-    public function messages()
-    {
-        return [
-            'user_id.required' => __('messages.student.required_id'),
-        ];
-    }
-
 
     public function failedValidation(Validator $validator)
     {

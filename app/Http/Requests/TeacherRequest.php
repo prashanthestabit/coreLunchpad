@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Contracts\Validation\Validator;
 
 class TeacherRequest extends FormRequest
 {
@@ -26,12 +26,12 @@ class TeacherRequest extends FormRequest
     public function rules()
     {
         return [
-            "name" => "required",
-            "email" => "required|email|unique:users",
-            "address" => "required",
-            "experience" => "required",
-            "exp_subjects" => "required",
-            "image" => ['image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048']
+            'name' => 'required',
+            'email' => 'required|email|unique:users',
+            'address' => 'required',
+            'experience' => 'required',
+            'exp_subjects' => 'required',
+            'image' => ['image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
         ];
     }
 

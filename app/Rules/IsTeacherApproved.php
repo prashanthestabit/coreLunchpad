@@ -2,8 +2,8 @@
 
 namespace App\Rules;
 
-use Illuminate\Contracts\Validation\Rule;
 use App\Repositories\HttpRepository;
+use Illuminate\Contracts\Validation\Rule;
 
 class IsTeacherApproved implements Rule
 {
@@ -14,7 +14,6 @@ class IsTeacherApproved implements Rule
      */
     public function __construct()
     {
-
     }
 
     /**
@@ -29,18 +28,16 @@ class IsTeacherApproved implements Rule
         $url = config('app.teacher_url').'/user/'.$value;
         $http = new HttpRepository();
         $response = $http->get($url);
-        if($response->status() === 200)
-        {
+        if ($response->status() === 200) {
             $response = $response->json('user');
-            if($response && $response['status_id'] == 2){
+            if ($response && $response['status_id'] == 2) {
                 return true;
-            }else{
+            } else {
                 return false;
             }
-        }else{
+        } else {
             return false;
         }
-
     }
 
     /**

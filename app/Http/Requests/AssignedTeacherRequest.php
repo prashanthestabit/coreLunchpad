@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\IsStudentApproved;
+use App\Rules\IsTeacherApproved;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Contracts\Validation\Validator;
-use App\Rules\IsTeacherApproved;
-use App\Rules\IsStudentApproved;
 
 class AssignedTeacherRequest extends FormRequest
 {
@@ -28,11 +28,10 @@ class AssignedTeacherRequest extends FormRequest
     public function rules()
     {
         return [
-            "user_id" => ['required',new IsStudentApproved($this)],
-            "teacher_id" => ['required',new IsTeacherApproved($this->teacher_id)],
+            'user_id' => ['required', new IsStudentApproved($this)],
+            'teacher_id' => ['required', new IsTeacherApproved($this->teacher_id)],
         ];
     }
-
 
     /**
      * Get the error messages for the defined validation rules.
@@ -45,7 +44,6 @@ class AssignedTeacherRequest extends FormRequest
             'user_id.required' => __('messages.student.required_id'),
         ];
     }
-
 
     public function failedValidation(Validator $validator)
     {

@@ -2,13 +2,13 @@
 
 namespace App\Rules;
 
-use Illuminate\Contracts\Validation\Rule;
-use Illuminate\Http\Request;
 use App\Repositories\HttpRepository;
+use Illuminate\Contracts\Validation\Rule;
 
 class IsStudentApproved implements Rule
 {
     public $token;
+
     /**
      * Create a new rule instance.
      *
@@ -18,7 +18,6 @@ class IsStudentApproved implements Rule
     {
         $this->token = $token;
     }
-
 
     /**
      * Determine if the validation rule passes.
@@ -30,23 +29,21 @@ class IsStudentApproved implements Rule
     public function passes($attribute, $value)
     {
         $http = new HttpRepository();
-        if(!empty($this->token->header('Authorization')))
-        {
+        if (! empty($this->token->header('Authorization'))) {
             $studentUrl = config('app.student_url').'/user/'.$value;
 
-            $response = $http->get($studentUrl,$this->token->header('Authorization'));
-            if($response->status() === 200)
-            {
+            $response = $http->get($studentUrl, $this->token->header('Authorization'));
+            if ($response->status() === 200) {
                 $response = $response->json('user');
-                if($response && $response['status_id'] == 2){
+                if ($response && $response['status_id'] == 2) {
                     return true;
-                }else{
+                } else {
                     return false;
                 }
-            }else{
+            } else {
                 return false;
             }
-        }else{
+        } else {
             return false;
         }
     }

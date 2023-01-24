@@ -13,6 +13,7 @@ use App\Http\Requests\LoginRequest;
 class MainController extends Controller
 {
     protected $httpRepository;
+    protected $http;
 
     const STUDENTREG = "/register/student";
     const LOGIN = '/auth/login';
@@ -104,7 +105,7 @@ class MainController extends Controller
                 return $this->http->getResponse($response);
 
             }else{
-                return $studentData->throw();
+                return $student->throw();
             }
 
             } catch (\Exception $e) {
@@ -129,13 +130,14 @@ class MainController extends Controller
             $urlNew = config('app.student_url').self::ASSIGNTEACHER;
 
             $response = $this->http->post($urlNew,$request->all(),'',$header);
+
             if($response->status() === 200)
             {
                 //notification for the teacher, when there is a new student assigned to him
                 $this->sendNewStudentAssignedNotification($header,$request);
                 return $response->json();
             }else{
-                return $studentData->throw();
+                return $response->throw();
             }
 
 
@@ -225,35 +227,18 @@ class MainController extends Controller
     protected function sendNewStudentAssignedNotification($header,$request)
     {
         try{
-            $teacherUserUrl = config('app.teacher_url').'/user/'.$request->input('teacher_id');
-            $studentUrl = config('app.student_url').'/user/'.$request->input('user_id');
+
             $notificationUrl = config('app.notification_url').self::NOTIFICATIONSTORE;
 
-            $teacher = $this->http->get($teacherUserUrl);
+            $notification = $this->http->post($notificationUrl,$request->all(),null,$header);
 
-
-            $student = $this->http->get($studentUrl,$header);
-
-            if($student->status() === 200 && $student->json('user')
-                && $teacher->status() === 200 && $teacher->json('user'))
+            if($notification->status() === 200)
             {
-                $studentDetails = $student->json('user');
-                $teacherDetails = $teacher->json('user');
-
-                $new_array = [
-                    'student' => $studentDetails,
-                    'teacher' => $teacherDetails
-                ];
-                $notification = $this->http->post($notificationUrl,$new_array);
-                if($notification->status() === 200)
-                {
-                    Log::info('StudentAssignedNotification Send');
-                }else{
-                    $notification->throw();
-                }
+                Log::info('StudentAssignedNotification Send');
             }else{
-                Log::info('Notification Not Send');
+                $notification->throw();
             }
+
             return true;
         }catch (\Exception $e) {
             Log::error($e->getMessage());
